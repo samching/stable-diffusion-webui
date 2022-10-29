@@ -3,6 +3,7 @@
 # Please do not make any changes to this file,  #
 # change the variables in webui-user.sh instead #
 #################################################
+
 # Read variables from webui-user.sh
 # shellcheck source=/dev/null
 if [[ -f webui-user.sh ]]
@@ -46,6 +47,17 @@ then
     LAUNCH_SCRIPT="launch.py"
 fi
 
+# this script cannot be run as root by default
+can_run_as_root=0
+
+# read any command line flags to the webui.sh script
+while getopts "f" flag
+do
+    case ${flag} in
+        f) can_run_as_root=1;;
+    esac
+done
+
 # Disable sentry logging
 export ERROR_REPORTING=FALSE
 
@@ -61,7 +73,7 @@ printf "\e[1m\e[34mTested on Debian 11 (Bullseye)\e[0m"
 printf "\n%s\n" "${delimiter}"
 
 # Do not run as root
-if [[ $(id -u) -eq 0 ]]
+if [[ $(id -u) -eq 0 && can_run_as_root -eq 0 ]]
 then
     printf "\n%s\n" "${delimiter}"
     printf "\e[1m\e[31mERROR: This script must not be launched as root, aborting...\e[0m"
@@ -82,8 +94,8 @@ then
     clone_dir="${PWD##*/}"
 fi
 
-# Check prerequisites
-for preq in "${GIT}" "${python_cmd}"
+# Check prequisites
+for preq in git python3
 do
     if ! hash "${preq}" &>/dev/null
     then
@@ -111,7 +123,7 @@ then
     cd "${clone_dir}"/ || { printf "\e[1m\e[31mERROR: Can't cd to %s/%s/, aborting...\e[0m" "${install_dir}" "${clone_dir}"; exit 1; }
     "${GIT}" pull
 else
-    "${GIT}" clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git "${clone_dir}"
+    "${GIT}" clone https://github.com/0xspeedrunner/stable-diffusion-webui.git "${clone_dir}"
     cd "${clone_dir}"/ || { printf "\e[1m\e[31mERROR: Can't cd to %s/%s/, aborting...\e[0m" "${install_dir}" "${clone_dir}"; exit 1; }
 fi
 
@@ -138,4 +150,4 @@ fi
 printf "\n%s\n" "${delimiter}"
 printf "Launching launch.py..."
 printf "\n%s\n" "${delimiter}"
-"${python_cmd}" "${LAUNCH_SCRIPT}" "$@"
+"${python_cmd}" "${LAUNCH_SCRIPT}"
